@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  queued
+  running
+  succeeded
+  failed
+  canceled
+}
+
+enum AssetType {
+  image
+  video
+  model
+}
+
+enum LogLevel {
+  info
+  warn
+  error
+}
+
+model Job {
+  id            String    @id @default(cuid())
+  workflow      String
+  status        JobStatus @default(queued)
+  progress      Int       @default(0)
+  prompt        String
+  negativePrompt String   @default("")
+  seed          BigInt?
+  steps         Int
+  cfg           Float
+  samplerName   String   @default("euler")
+  scheduler     String   @default("normal")
+  width         Int
+  height        Int
+  denoise       Float?
+  strength      Float?
+  inputImagePath String?
+  previewPath   String?
+  workflowJson  Json?
+  modelConfig   Json?
+  comfyPromptId String?
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  assets        Asset[]
+  logs          JobLog[]
+}
+
+model Asset {
+  id            String    @id @default(cuid())
+  jobId         String
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type          AssetType
+  mimeType      String
+  filePath      String
+  thumbnailPath String?
+  createdAt     DateTime  @default(now())
+}
+
+model JobLog {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  level     LogLevel @default(info)
+  message   String
+  meta      Json?
+  createdAt DateTime @default(now())
+}

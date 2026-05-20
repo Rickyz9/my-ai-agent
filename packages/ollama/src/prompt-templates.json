@@ -1,0 +1,22 @@
+{
+  "cinematic": {
+    "promptScaffold": "cinematic lighting, dramatic composition, rich environmental detail, clean focal subject",
+    "negativePrompt": "lowres, blurry, distorted anatomy, extra limbs, text, watermark"
+  },
+  "anime": {
+    "promptScaffold": "anime illustration, expressive character design, clean silhouette, readable hands, symmetrical eyes, polished linework, controlled effects",
+    "negativePrompt": "photorealistic skin, malformed eyes, asymmetrical eyes, bad hands, extra fingers, fused fingers, extra limbs, distorted face, muddy colors, messy aura, text, watermark"
+  },
+  "product-shot": {
+    "promptScaffold": "studio product photography, clean background, crisp highlights, premium materials",
+    "negativePrompt": "busy background, clutter, motion blur, text overlay, watermark"
+  },
+  "editorial": {
+    "promptScaffold": "editorial photography, single focal human subject, realistic lighting, clean silhouette, stable facial proportions",
+    "negativePrompt": "oversaturated, flat lighting, duplicate subject, duplicate body, fused bodies, merged limbs, extra limbs, malformed hands, dead eyes, warped mouth, watermark, low detail"
+  },
+  "photoreal": {
+    "promptScaffold": "photoreal image, single focal human subject, accurate skin texture, natural lighting, realistic optics, clean silhouette",
+    "negativePrompt": "cgi look, overprocessed, waxy skin, duplicate body, fused bodies, merged limbs, extra arms, extra legs, extra fingers, malformed hands, dead eyes, warped mouth, muddy details, text, watermark"
+  }
+}

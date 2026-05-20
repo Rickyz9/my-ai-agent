@@ -1,0 +1,109 @@
+mat-progress-bar {
+  margin-bottom: 16px;
+}
+
+.model-metrics {
+  margin-bottom: 18px;
+}
+
+.grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric {
+  display: grid;
+  gap: 8px;
+}
+
+.metric span {
+  color: #94a3b8;
+}
+
+.metric strong {
+  font-size: 28px;
+}
+
+.models-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.model-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.model-head strong,
+.model-head span {
+  display: block;
+}
+
+.model-details,
+.available-files {
+  grid-column: 1 / -1;
+}
+
+.model-details {
+  display: grid;
+  gap: 6px;
+}
+
+.model-details p,
+.available-files p {
+  margin: 0;
+  color: #cbd5e1;
+  overflow-wrap: anywhere;
+}
+
+.model-details strong {
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.available-files {
+  display: grid;
+  gap: 8px;
+}
+
+.available-files > span {
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.available-files div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ok {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+.missing {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fecaca;
+}
+
+.optional {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fde68a;
+}
+
+@media (max-width: 980px) {
+  .grid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .grid.four,
+  .model-row {
+    grid-template-columns: 1fr;
+  }
+}

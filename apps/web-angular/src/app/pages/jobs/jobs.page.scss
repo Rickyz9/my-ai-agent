@@ -1,0 +1,82 @@
+mat-progress-bar {
+  margin-bottom: 16px;
+}
+
+.job-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.jobs-list {
+  display: grid;
+  gap: 12px;
+}
+
+.job-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.job-row:hover {
+  border-color: rgba(102, 217, 239, 0.45);
+}
+
+.preview {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #020617;
+  color: #64748b;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.row-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+p {
+  display: -webkit-box;
+  margin: 8px 0;
+  overflow: hidden;
+  color: #cbd5e1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.job-row mat-progress-bar {
+  margin: 8px 0;
+}
+
+.empty {
+  color: #94a3b8;
+}
+
+@media (max-width: 720px) {
+  .job-controls,
+  .job-row {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}

@@ -1,0 +1,192 @@
+<header class="page-header">
+  <div>
+    <h1>Learning</h1>
+    <p>Memoria statistica, rischi, override manuali e runtime health.</p>
+  </div>
+  <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+    <mat-icon>refresh</mat-icon>
+    Aggiorna
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (feedback()) {
+  <p class="feedback">{{ feedback() }}</p>
+}
+
+<section class="grid three">
+  <div class="panel metric">
+    <span>Samples</span>
+    <strong>{{ summary()?.totalSamples ?? 0 }}</strong>
+  </div>
+  <div class="panel metric">
+    <span>Queue avg</span>
+    <strong>{{ runtime()?.overview?.avgQueueWaitMs ?? 0 | number: "1.0-0" }} ms</strong>
+  </div>
+  <div class="panel metric">
+    <span>Execution avg</span>
+    <strong>{{ runtime()?.overview?.avgExecutionMs ?? 0 | number: "1.0-0" }} ms</strong>
+  </div>
+</section>
+
+<section class="panel controls">
+  <mat-form-field appearance="outline">
+    <mat-label>Cerca</mat-label>
+    <input matInput [value]="searchTerm()" (input)="setSearch($event)" />
+  </mat-form-field>
+
+  <div class="button-row">
+    <button mat-stroked-button type="button" [class.active]="sortMode() === 'samples'" (click)="sortMode.set('samples')">
+      Samples
+    </button>
+    <button mat-stroked-button type="button" [class.active]="sortMode() === 'score'" (click)="sortMode.set('score')">
+      Score
+    </button>
+    <button mat-stroked-button type="button" [class.active]="sortMode() === 'risk'" (click)="sortMode.set('risk')">
+      Risk
+    </button>
+  </div>
+
+  <div class="button-row">
+    <button mat-stroked-button type="button" [class.active]="scopeFilter() === 'all'" (click)="scopeFilter.set('all')">
+      Tutto
+    </button>
+    <button mat-stroked-button type="button" [class.active]="scopeFilter() === 'style'" (click)="scopeFilter.set('style')">
+      Style lane
+    </button>
+    <button mat-stroked-button type="button" [class.active]="scopeFilter() === 'category'" (click)="scopeFilter.set('category')">
+      Categorie
+    </button>
+  </div>
+</section>
+
+@if (riskyEntries().length) {
+  <section class="panel risk-strip">
+    <h2>Scope da osservare</h2>
+    <div class="risk-list">
+      @for (item of riskyEntries(); track item.entry.categoryId + (item.entry.styleRecipeId ?? "")) {
+        <mat-chip [class]="healthClass(item.entry)">
+          {{ item.entry.styleRecipeId ?? item.entry.categoryId }} · {{ health(item.entry) }}
+        </mat-chip>
+      }
+    </div>
+  </section>
+}
+
+<section class="learning-list">
+  @for (item of entries(); track item.entry.categoryId + (item.entry.styleRecipeId ?? item.scope)) {
+    <mat-expansion-panel class="learning-card">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          {{ item.entry.styleRecipeId ?? item.entry.categoryId }}
+        </mat-panel-title>
+        <mat-panel-description>
+          {{ item.scope }} · {{ item.entry.sampleCount }} samples · {{ item.entry.avgOverallScore | number: "1.0-0" }}
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div class="card-body">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">{{ item.scope }}</p>
+            <h3>{{ item.entry.styleRecipeId ?? item.entry.categoryId }}</h3>
+            <p class="muted">
+              {{ item.entry.categoryId }}
+              @if (item.entry.styleRecipeId) {
+                · {{ item.entry.styleRecipeId }}
+              }
+              · updated {{ item.entry.lastUpdated | date: "short" }}
+            </p>
+          </div>
+          <div class="chip-row">
+            <mat-chip [class]="healthClass(item.entry)">{{ health(item.entry) }}</mat-chip>
+            <mat-chip>{{ failures(item.entry) }} avoid</mat-chip>
+            @if (item.entry.manualPreferredVariantId || item.entry.manualBannedPrimaryLoras.length || item.entry.manualBannedCheckpoints.length || item.entry.manualBannedRepairIds.length) {
+              <mat-chip>Manual override</mat-chip>
+            }
+          </div>
+        </div>
+
+        <div class="score-grid">
+          <div><span>Overall</span><strong>{{ item.entry.avgOverallScore | number: "1.0-0" }}</strong></div>
+          <div><span>Face</span><strong>{{ item.entry.avgFaceScore | number: "1.0-0" }}</strong></div>
+          <div><span>Hands</span><strong>{{ item.entry.avgHandsScore | number: "1.0-0" }}</strong></div>
+          <div><span>CFG</span><strong>{{ item.entry.preferredCfg ?? "n/a" }}</strong></div>
+          <div><span>Steps</span><strong>{{ item.entry.preferredSteps ?? "n/a" }}</strong></div>
+          <div><span>Batch</span><strong>{{ item.entry.preferredBatchSize }}</strong></div>
+        </div>
+
+        <div class="insight-grid">
+          <div>
+            <h4>Preferisce</h4>
+            <p>Top variant: {{ topVariant(item.entry)?.label ?? "n/a" }}</p>
+            <p>Best candidate: {{ topBatchCandidate(item.entry)?.candidateLabel ?? "n/a" }}</p>
+            <p>Top repair: {{ topRepair(item.entry)?.repairId ?? "n/a" }}</p>
+            <p>Issues: {{ item.entry.topIssues.join(", ") || "none" }}</p>
+          </div>
+          <div>
+            <h4>Evita</h4>
+            <p>Variants: {{ item.entry.avoidVariantIds.join(", ") || "none" }}</p>
+            <p>LoRA: {{ item.entry.unsafePrimaryLoras.join(", ") || "none" }}</p>
+            <p>Checkpoints: {{ item.entry.disfavoredCheckpoints.join(", ") || "none" }}</p>
+            <p>Repairs: {{ item.entry.regressiveRepairIds.join(", ") || "none" }}</p>
+          </div>
+        </div>
+
+        <div class="button-row wrap">
+          @if (topVariant(item.entry)) {
+            <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="applyOverride(item.entry, 'promote_variant', topVariant(item.entry)?.variantId)">
+              Promote variant
+            </button>
+          }
+          @if (item.entry.manualPreferredVariantId) {
+            <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="applyOverride(item.entry, 'clear_promoted_variant')">
+              Clear promoted
+            </button>
+          }
+          @if (item.entry.disfavoredCheckpoints[0]) {
+            <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="applyOverride(item.entry, 'ban_checkpoint', item.entry.disfavoredCheckpoints[0])">
+              Ban checkpoint
+            </button>
+          }
+          @if (item.entry.regressiveRepairIds[0]) {
+            <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="applyOverride(item.entry, 'ban_repair', item.entry.regressiveRepairIds[0])">
+              Ban repair
+            </button>
+          }
+          <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="loadDebug(item.entry)">
+            Debug
+          </button>
+          <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="applyOverride(item.entry, 'reset_scope')">
+            Reset scope
+          </button>
+        </div>
+
+        @if (item.entry.failureNotes.length) {
+          <div class="failure-notes">
+            @for (note of item.entry.failureNotes; track note) {
+              <p>{{ note }}</p>
+            }
+          </div>
+        }
+      </div>
+    </mat-expansion-panel>
+  } @empty {
+    <div class="panel muted">Nessuna memoria learning trovata.</div>
+  }
+</section>
+
+@if (debug(); as debugPayload) {
+  <section class="panel debug-panel">
+    <h2>Debug records</h2>
+    <p class="muted">{{ debugPayload.recordCount }} records · updated {{ debugPayload.updatedAt | date: "short" }}</p>
+    <pre>{{ debugPayload.records | json }}</pre>
+  </section>
+}

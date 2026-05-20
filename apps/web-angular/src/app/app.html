@@ -1,0 +1,41 @@
+<mat-sidenav-container class="app-shell">
+  <mat-sidenav class="app-nav" mode="side" opened>
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div>
+        <strong>Image Studio</strong>
+        <span>Local render lab</span>
+      </div>
+    </div>
+
+    <nav aria-label="Primary navigation">
+      @for (item of navItems; track item.path) {
+        <a
+          mat-button
+          class="nav-link"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/generate' }"
+        >
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="topbar">
+      <span>My AI Agent</span>
+      <span class="spacer"></span>
+      <a mat-stroked-button routerLink="/jobs">
+        <mat-icon>history</mat-icon>
+        Jobs
+      </a>
+    </mat-toolbar>
+
+    <main class="page">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

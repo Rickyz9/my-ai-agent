@@ -1,0 +1,28 @@
+{
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{input_image}}"
+    }
+  },
+  "4": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "{{upscale_model_name}}"
+    }
+  },
+  "5": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": ["4", 0],
+      "image": ["3", 0]
+    }
+  },
+  "6": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "upscale_{{seed}}",
+      "images": ["5", 0]
+    }
+  }
+}

@@ -1,0 +1,115 @@
+<header class="page-header">
+  <div>
+    <h1>Prompt Studio</h1>
+    <p>Composizione guidata del prompt con profilo modello e parametri suggeriti.</p>
+  </div>
+  <button mat-flat-button color="primary" type="button" [disabled]="loading()" (click)="compose()">
+    <mat-icon>auto_fix_high</mat-icon>
+    Componi
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (feedback()) {
+  <p class="feedback">{{ feedback() }}</p>
+}
+
+<section class="studio-layout">
+  <form class="panel stack composer-panel" [formGroup]="form" (ngSubmit)="compose()">
+    <mat-form-field appearance="outline">
+      <mat-label>Descrizione</mat-label>
+      <textarea
+        matInput
+        formControlName="userText"
+        rows="12"
+        placeholder="Ritratto editoriale fotorealistico, luce morbida, volto naturale, sfondo pulito"
+      ></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Stile</mat-label>
+      <mat-select formControlName="preset">
+        @for (preset of stylePresets; track preset) {
+          <mat-option [value]="preset">{{ titleCase(preset) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit" [disabled]="loading() || form.invalid">
+      <mat-icon>wand_stars</mat-icon>
+      Build prompt
+    </button>
+  </form>
+
+  <section class="panel stack result-panel">
+    @if (result(); as output) {
+      <div class="profile-strip">
+        <span>Recommended profile</span>
+        <strong>{{ recommendedProfileLabel() }}</strong>
+      </div>
+
+      <div class="copy-card">
+        <div class="copy-head">
+          <h2>Prompt</h2>
+          <button mat-stroked-button type="button" (click)="copyText('Prompt', output.prompt)">
+            <mat-icon>content_copy</mat-icon>
+            Copia
+          </button>
+        </div>
+        <textarea readonly [value]="output.prompt"></textarea>
+      </div>
+
+      <div class="copy-card">
+        <div class="copy-head">
+          <h2>Negative prompt</h2>
+          <button mat-stroked-button type="button" (click)="copyText('Negative prompt', output.negativePrompt)">
+            <mat-icon>content_copy</mat-icon>
+            Copia
+          </button>
+        </div>
+        <textarea readonly [value]="output.negativePrompt"></textarea>
+      </div>
+
+      <div class="settings-grid">
+        <div><span>Steps</span><strong>{{ output.params.steps }}</strong></div>
+        <div><span>CFG</span><strong>{{ output.params.cfg }}</strong></div>
+        <div><span>Sampler</span><strong>{{ output.params.samplerName }}</strong></div>
+        <div><span>Scheduler</span><strong>{{ output.params.scheduler }}</strong></div>
+        <div><span>Width</span><strong>{{ output.params.width }}</strong></div>
+        <div><span>Height</span><strong>{{ output.params.height }}</strong></div>
+      </div>
+
+      @if (output.safetyNotes.length) {
+        <div class="notes">
+          @for (note of output.safetyNotes; track note) {
+            <p>{{ note }}</p>
+          }
+        </div>
+      }
+
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="copyText('Settings JSON', paramsJson(output))">
+          <mat-icon>data_object</mat-icon>
+          Copia settings
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="sendToGenerate()">
+          <mat-icon>arrow_forward</mat-icon>
+          Invia a Generate
+        </button>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-icon>edit_note</mat-icon>
+        <strong>Output in attesa</strong>
+        <span>Prompt, negative prompt e parametri compariranno qui.</span>
+      </div>
+    }
+  </section>
+</section>

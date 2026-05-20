@@ -1,0 +1,54 @@
+<header class="page-header">
+  <div>
+    <h1>Gallery</h1>
+    <p>{{ counts().total }} asset · {{ counts().images }} immagini · {{ counts().videos }} video · {{ counts().models }} modelli</p>
+  </div>
+  <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+    <mat-icon>refresh</mat-icon>
+    Aggiorna
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+<section class="panel gallery-controls">
+  <mat-form-field appearance="outline">
+    <mat-label>Cerca</mat-label>
+    <input matInput [value]="searchTerm()" (input)="setSearch($event)" />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Tipo</mat-label>
+    <mat-select [value]="typeFilter()" (selectionChange)="setTypeFilter($event.value)">
+      <mat-option value="all">Tutti</mat-option>
+      <mat-option value="image">Image</mat-option>
+      <mat-option value="video">Video</mat-option>
+      <mat-option value="model">Model</mat-option>
+    </mat-select>
+  </mat-form-field>
+</section>
+
+<section class="gallery-grid">
+  @for (asset of visibleAssets(); track asset.id) {
+    <a class="panel gallery-card" [routerLink]="['/jobs', asset.jobId]">
+      @if (asset.type === "image") {
+        <img class="asset-image" [src]="dataUrl(asset.thumbnailPath || asset.filePath)" alt="" />
+      } @else {
+        <div class="model-box">
+          <mat-icon>deployed_code</mat-icon>
+          <span>{{ asset.type }}</span>
+        </div>
+      }
+      <strong>{{ asset.workflow }}</strong>
+      <mat-chip>{{ asset.type }}</mat-chip>
+      <p>{{ asset.prompt }}</p>
+    </a>
+  } @empty {
+    <div class="panel muted">La gallery è vuota.</div>
+  }
+</section>

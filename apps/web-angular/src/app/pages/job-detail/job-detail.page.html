@@ -1,0 +1,236 @@
+<header class="page-header">
+  <div>
+    <a class="back-link" routerLink="/jobs">Jobs</a>
+    <h1>Job detail</h1>
+    @if (job(); as currentJob) {
+      <p>{{ currentJob.workflow }} · {{ currentJob.createdAt | date: "medium" }} · {{ liveStatus() }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+      <mat-icon>refresh</mat-icon>
+      Aggiorna
+    </button>
+    <button mat-stroked-button type="button" [disabled]="actionBusy()" (click)="rerun()">
+      <mat-icon>replay</mat-icon>
+      Rerun
+    </button>
+    <button mat-flat-button color="primary" type="button" [disabled]="evaluating()" (click)="evaluate()">
+      <mat-icon>fact_check</mat-icon>
+      Valuta
+    </button>
+  </div>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (job(); as currentJob) {
+  <section class="detail-layout">
+    <div class="left-column">
+      <section class="panel stack">
+        <div class="status-line">
+          <mat-chip>{{ currentJob.status }}</mat-chip>
+          <span>{{ currentJob.progress }}%</span>
+        </div>
+        <mat-progress-bar mode="determinate" [value]="visibleProgress(currentJob.progress, currentJob.status)" />
+
+        <h2>Output</h2>
+        <div class="assets-grid">
+          @for (asset of currentJob.assets; track asset.id) {
+            @if (asset.type === "image") {
+              <a [href]="dataUrl(asset.filePath)" target="_blank" rel="noreferrer">
+                <img class="asset-image" [src]="dataUrl(asset.filePath)" alt="" />
+              </a>
+            } @else {
+              <a class="download-box" [href]="dataUrl(asset.filePath)" target="_blank" rel="noreferrer">
+                <mat-icon>download</mat-icon>
+                {{ asset.type }} · {{ asset.mimeType }}
+              </a>
+            }
+          } @empty {
+            <div class="empty-output">
+              <mat-icon>hourglass_empty</mat-icon>
+              <span>Output non ancora disponibile.</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (candidateBatch()?.jobs?.length && (candidateBatch()?.jobs?.length ?? 0) > 1) {
+        <section class="panel stack">
+          <div class="section-heading">
+            <div>
+              <h2>Candidate Batch</h2>
+              <p class="muted">Best-of-{{ candidateBatch()?.jobs?.length }} generato come job separati.</p>
+            </div>
+            @if (candidateBatch()?.bestJobId) {
+              <mat-chip>Best selected</mat-chip>
+            }
+          </div>
+
+          <div class="candidate-grid">
+            @for (candidate of candidateBatch()?.jobs; track candidate.id) {
+              <a class="candidate-card" [class.best]="candidate.best" [routerLink]="['/jobs', candidate.id]">
+                @if (candidate.previewPath) {
+                  <img [src]="dataUrl(candidate.previewPath)" alt="" />
+                } @else {
+                  <div class="candidate-placeholder">
+                    <mat-icon>image</mat-icon>
+                  </div>
+                }
+                <div class="candidate-meta">
+                  <strong>#{{ candidate.candidateIndex }} {{ candidate.candidateLabel }}</strong>
+                  <span>{{ candidate.status }} · {{ candidate.progress }}%</span>
+                  <span>Score: {{ candidate.score ?? "pending" }}</span>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      @if (relatedJobs(); as related) {
+        @if (related.parent || related.children.length) {
+          <section class="panel stack">
+            <h2>Lineage</h2>
+            @if (related.parent) {
+              <a class="lineage-row" [routerLink]="['/jobs', related.parent.id]">
+                <span>Parent</span>
+                <strong>{{ related.parent.id }}</strong>
+                <mat-chip>{{ related.parent.status }}</mat-chip>
+              </a>
+            }
+            @for (child of related.children; track child.id) {
+              <a class="lineage-row" [routerLink]="['/jobs', child.id]">
+                <span>Child</span>
+                <strong>{{ child.id }}</strong>
+                <mat-chip>{{ child.status }}</mat-chip>
+              </a>
+            }
+          </section>
+        }
+      }
+    </div>
+
+    <aside class="panel">
+      <mat-tab-group>
+        <mat-tab label="Evaluation">
+          <div class="tab-body">
+            @if (evaluation(); as score) {
+              <div class="score">{{ score.overallScore | number: "1.0-0" }}</div>
+              <p>{{ score.summary }}</p>
+              <div class="score-grid">
+                <div><span>Face</span><strong>{{ score.faceScore }}</strong></div>
+                <div><span>Hands</span><strong>{{ score.handsScore }}</strong></div>
+                <div><span>Composition</span><strong>{{ score.compositionScore }}</strong></div>
+                <div><span>Material</span><strong>{{ score.materialScore }}</strong></div>
+              </div>
+              <mat-chip-set>
+                @for (issue of score.issues; track issue) {
+                  <mat-chip>{{ issue }}</mat-chip>
+                }
+              </mat-chip-set>
+            } @else {
+              <p class="muted">Premi Valuta per richiedere una valutazione del render.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Repair">
+          <div class="tab-body">
+            @if (repairPlans().length) {
+              @for (plan of repairPlans(); track plan.id) {
+                <button class="repair-card" type="button" [disabled]="actionBusy()" (click)="applyRepairPlan(plan)">
+                  <strong>{{ plan.label }}</strong>
+                  <span>{{ plan.description }}</span>
+                </button>
+              }
+            } @else {
+              <p class="muted">I repair plan saranno disponibili dopo un job riuscito.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Learning">
+          <div class="tab-body">
+            @if (activeLearningCategory(); as learning) {
+              <div class="score-grid">
+                <div><span>Samples</span><strong>{{ learning.sampleCount }}</strong></div>
+                <div><span>Avg</span><strong>{{ learning.avgOverallScore | number: "1.0-0" }}</strong></div>
+                <div><span>CFG</span><strong>{{ learning.preferredCfg ?? "n/a" }}</strong></div>
+                <div><span>Steps</span><strong>{{ learning.preferredSteps ?? "n/a" }}</strong></div>
+              </div>
+              <p>Top variant: {{ topVariant(learning)?.label ?? "n/a" }}</p>
+              <p>Top repair: {{ topRepair(learning)?.repairId ?? "n/a" }}</p>
+              @if (learning.topIssues.length) {
+                <p class="muted">Issues: {{ learning.topIssues.join(", ") }}</p>
+              }
+              @if (learning.avoidDetailPass || learning.avoidRefiner) {
+                <p class="warning">Avoid: {{ learning.avoidDetailPass ? "detail pass " : "" }}{{ learning.avoidRefiner ? "refiner" : "" }}</p>
+              }
+            } @else {
+              <p class="muted">Nessuna memoria learning per questa categoria.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Prompt">
+          <div class="tab-body">
+            <h3>Prompt</h3>
+            <p>{{ currentJob.params.prompt }}</p>
+            <h3>Negative</h3>
+            <p class="muted">{{ currentJob.params.negativePrompt || "Nessun negative prompt." }}</p>
+            <h3>Model config</h3>
+            <pre>{{ currentJob.modelConfig | json }}</pre>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Telemetry">
+          <div class="tab-body">
+            @if (runtimeTelemetry(); as runtime) {
+              <div class="score-grid telemetry-grid">
+                <div><span>Queue</span><strong>{{ formatMs(runtime.queueWaitMs) }}</strong></div>
+                <div><span>Lane</span><strong>{{ formatMs(runtime.laneWaitMs) }}</strong></div>
+                <div><span>Build</span><strong>{{ formatMs(runtime.workflowBuildMs) }}</strong></div>
+                <div><span>Submit</span><strong>{{ formatMs(runtime.submitMs) }}</strong></div>
+                <div><span>Execution</span><strong>{{ formatMs(runtime.executionMs) }}</strong></div>
+                <div><span>Persist</span><strong>{{ formatMs(runtime.outputPersistMs) }}</strong></div>
+                <div><span>Evaluation</span><strong>{{ formatMs(runtime.evaluationMs) }}</strong></div>
+              </div>
+              <p class="muted">Lane: {{ runtime.concurrencyLane ?? "n/a" }} {{ runtime.laneLimit ? "· limit " + runtime.laneLimit : "" }}</p>
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Logs">
+          <div class="tab-body logs">
+            @for (log of currentJob.logs; track log.id) {
+              <div class="log-row" [class.warn]="log.level === 'warn'" [class.fail]="log.level === 'error'">
+                <span>{{ log.createdAt | date: "shortTime" }}</span>
+                <strong>{{ log.level }}</strong>
+                <p>{{ log.message }}</p>
+                @if (log.meta) {
+                  <pre>{{ logMeta(log) }}</pre>
+                }
+              </div>
+            } @empty {
+              <p class="muted">Nessun log.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Workflow">
+          <div class="tab-body">
+            <pre>{{ workflowJson(currentJob) }}</pre>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </aside>
+  </section>
+}

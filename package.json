@@ -2,26 +2,32 @@
   "name": "my-ai-agent",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "dev": "pnpm dev:angular",
+    "dev:angular": "turbo dev --parallel --filter=@repo/api --filter=@repo/worker --filter=@repo/web-angular",
+    "dev:all": "pnpm dev:angular",
+    "hunyuan3d:api": "bash ./scripts/run-hunyuan3d-api.sh",
+    "build": "turbo build --filter=@repo/shared --filter=@repo/comfy --filter=@repo/ollama --filter=@repo/db --filter=@repo/api --filter=@repo/worker --filter=@repo/web-angular",
+    "build:angular": "pnpm --filter @repo/web-angular build",
+    "typecheck": "turbo typecheck --filter=@repo/shared --filter=@repo/comfy --filter=@repo/ollama --filter=@repo/db --filter=@repo/api --filter=@repo/worker --filter=@repo/web-angular",
+    "typecheck:angular": "pnpm --filter @repo/web-angular typecheck",
+    "lint": "turbo lint --filter=@repo/shared --filter=@repo/comfy --filter=@repo/ollama --filter=@repo/db --filter=@repo/api --filter=@repo/worker --filter=@repo/web-angular",
+    "lint:angular": "pnpm --filter @repo/web-angular lint",
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter @repo/db migrate",
+    "db:generate": "pnpm --filter @repo/db generate",
+    "db:studio": "pnpm --filter @repo/db studio"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@eslint/js": "^9.22.0",
+    "@types/node": "^22.13.10",
+    "dotenv-cli": "^8.0.0",
+    "eslint": "^9.22.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1"
   }
 }

@@ -1,0 +1,271 @@
+<header class="page-header">
+  <div>
+    <h1>Quality Lab</h1>
+    <p>Benchmark controllati per categorie critiche, candidati comparabili e memoria di scoring.</p>
+  </div>
+  <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+    <mat-icon>refresh</mat-icon>
+    Aggiorna
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (loadError()) {
+  <p class="error">{{ loadError() }}</p>
+}
+
+<section class="panel status-panel">
+  <div class="status-head">
+    <div>
+      <h2>Readiness</h2>
+      <p class="muted">Stato API, modelli locali e ControlNet usati dai benchmark.</p>
+    </div>
+    <div class="chip-row">
+      <mat-chip [class.ready]="health()?.comfy?.ok">Comfy {{ health()?.comfy?.ok ? "online" : "check" }}</mat-chip>
+      <mat-chip [class.ready]="health()?.redis?.ok">Redis {{ health()?.redis?.ok ? "online" : "check" }}</mat-chip>
+      <mat-chip [class.ready]="openPoseControlAvailable()">OpenPose {{ openPoseControlAvailable() ? "ready" : "fallback" }}</mat-chip>
+    </div>
+  </div>
+
+  <div class="readiness-list">
+    @for (entry of readinessEntries(); track entry.id) {
+      <div class="readiness-row">
+        <div>
+          <span>{{ entry.envVar }}</span>
+          <strong>{{ entry.label }}</strong>
+          <small>{{ entry.configuredFile ?? "not configured" }}</small>
+        </div>
+        <mat-chip [class]="modelTone(entry)">
+          {{ entry.exists ? "present" : entry.required ? "missing" : "optional" }}
+        </mat-chip>
+      </div>
+    } @empty {
+      <p class="muted">Registry modelli non ancora disponibile.</p>
+    }
+  </div>
+</section>
+
+<section class="family-grid">
+  @for (group of familySummary(); track group.family) {
+    <div class="family-card" [class.ready]="group.tone === 'ready'" [class.optional]="group.tone === 'optional'" [class.missing]="group.tone === 'missing'">
+      <div>
+        <span>{{ group.label }}</span>
+        <strong>{{ formatScore(group.avgScore) }}</strong>
+        <small>{{ group.description }}</small>
+      </div>
+      <div class="family-meta">
+        <mat-chip>{{ group.sampleCount }} samples</mat-chip>
+        <mat-chip [class.missing]="group.riskCount > 0">{{ group.riskCount }} risks</mat-chip>
+      </div>
+      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="submitFamily(group.family)">
+        <mat-icon>play_arrow</mat-icon>
+        Run {{ group.label }}
+      </button>
+    </div>
+  }
+</section>
+
+<section class="lab-layout">
+  <aside class="suite-list">
+    @for (group of suiteGroups; track group.family) {
+      <div class="suite-group">
+        <p class="suite-group-title">{{ group.label }}</p>
+        @for (suite of group.suites; track suite.id) {
+          <button type="button" class="suite-button" [class.active]="selectedSuiteId() === suite.id" (click)="selectSuite(suite.id)">
+            <span>{{ suite.label }}</span>
+            <small>{{ suite.description }}</small>
+            <em>{{ suite.categoryId }} · {{ suite.priority }}</em>
+          </button>
+        }
+      </div>
+    }
+  </aside>
+
+  @if (selectedSuite(); as suite) {
+    <section class="panel suite-panel">
+      <div class="suite-head">
+        <div>
+          <p class="eyebrow">{{ suite.categoryId }}</p>
+          <h2>{{ suite.label }}</h2>
+          <p class="muted">{{ suite.description }}</p>
+        </div>
+        <div class="suite-controls">
+          <mat-chip [class.critical]="suite.priority === 'critical'">{{ suite.family }}</mat-chip>
+          <mat-form-field appearance="outline" class="count-field">
+            <mat-label>Candidati</mat-label>
+            <mat-select [value]="activeCandidateCount()" (selectionChange)="setCandidateCount($event.value)">
+              <mat-option [value]="1">1x</mat-option>
+              <mat-option [value]="2">2x</mat-option>
+              <mat-option [value]="3">3x</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div
+        class="insight-banner"
+        [class.ready]="selectedSuiteInsight().tone === 'ready'"
+        [class.optional]="selectedSuiteInsight().tone === 'optional'"
+        [class.missing]="selectedSuiteInsight().tone === 'missing'"
+      >
+        <mat-icon>{{ selectedSuiteInsight().tone === "ready" ? "verified" : selectedSuiteInsight().tone === "missing" ? "warning" : "info" }}</mat-icon>
+        <div>
+          <strong>{{ selectedSuiteInsight().title }}</strong>
+          <span>{{ selectedSuiteInsight().detail }}</span>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div>
+          <span>Provider route</span>
+          <strong>{{ suite.providerModel }}</strong>
+          <small>{{ suite.providerReason }}</small>
+        </div>
+        <div>
+          <span>Learning score</span>
+          <strong>{{ formatScore(selectedLearning()?.avgOverallScore) }}</strong>
+          <small>
+            @if (selectedLearning(); as learning) {
+              {{ learning.sampleCount }} samples · {{ learning.lastUpdated | date: "short" }}
+            } @else {
+              Nessun campione ancora
+            }
+          </small>
+        </div>
+        <div>
+          <span>Top variant</span>
+          <strong>{{ selectedLearning()?.rankedVariants?.[0]?.label ?? "No winner yet" }}</strong>
+          <small>
+            @if (selectedLearning()?.rankedVariants?.[0]; as variant) {
+              Avg {{ variant.avgOverallScore | number: "1.0-0" }}
+            } @else {
+              La prima batch crea la baseline
+            }
+          </small>
+        </div>
+        <div>
+          <span>Readiness</span>
+          <strong>{{ selectedSuiteReady() ? "Ready" : "Blocked" }}</strong>
+          <small>
+            @if (selectedSuiteMissingModels().length) {
+              {{ selectedSuiteMissingModels().length }} model setup issue
+            } @else {
+              Required models present
+            }
+          </small>
+        </div>
+        <div>
+          <span>Auto-repair</span>
+          <strong>{{ selectedLearning()?.autoRepairEnabled ? "On" : "Planned" }}</strong>
+          <small>Threshold {{ selectedLearning()?.recommendedAutoRepairThreshold ?? suite.modelConfig.autoRepairThreshold ?? 74 }}</small>
+        </div>
+        <div>
+          <span>Runtime</span>
+          <strong>{{ selectedLearning()?.avgRuntimeMs ? ((selectedLearning()?.avgRuntimeMs ?? 0) / 1000 | number: "1.0-0") + "s" : "n/a" }}</strong>
+          <small>Score/sec {{ selectedLearning()?.avgScorePerSecond ? (selectedLearning()?.avgScorePerSecond | number: "1.1-2") : "n/a" }}</small>
+        </div>
+      </div>
+
+      <div class="criteria-grid">
+        <div>
+          <span>Success criteria</span>
+          <ul>
+            @for (criterion of suite.successCriteria; track criterion) {
+              <li>{{ criterion }}</li>
+            }
+          </ul>
+        </div>
+        <div>
+          <span>Model gates</span>
+          <div class="mini-readiness">
+            @for (entry of selectedSuiteReadinessEntries(); track entry.id) {
+              <mat-chip [class]="modelTone(entry)">{{ entry.label }} · {{ entry.exists ? "present" : "missing" }}</mat-chip>
+            } @empty {
+              <mat-chip>Registry non disponibile</mat-chip>
+            }
+          </div>
+        </div>
+        <div>
+          <span>Learning warnings</span>
+          @if (topIssues(selectedLearning()).length) {
+            <ul>
+              @for (issue of topIssues(selectedLearning()); track issue) {
+                <li>{{ issue }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">Nessun warning registrato per questa suite.</p>
+          }
+        </div>
+      </div>
+
+      <div class="candidate-list">
+        @for (insight of selectedCandidateInsights(); track insight.candidate.id; let index = $index) {
+          <div
+            class="candidate-row"
+            [class.muted-row]="index >= activeCandidateCount()"
+            [class.winner]="insight.status === 'winner'"
+            [class.avoid]="insight.status === 'avoid'"
+          >
+            <div>
+              <span>Candidate {{ index + 1 }}</span>
+              <strong>{{ insight.candidate.label }}</strong>
+              <small>{{ insight.candidate.focus }}</small>
+              <div class="criteria-inline">
+                @for (criterion of insight.candidate.successCriteria; track criterion) {
+                  <mat-chip>{{ criterion }}</mat-chip>
+                }
+              </div>
+            </div>
+            <div class="candidate-score">
+              <mat-chip [class]="insight.tone">{{ insight.status }}</mat-chip>
+              <strong>{{ formatScore(insight.score) }}</strong>
+              <small>Win {{ formatPercent(insight.batchCandidate?.winRate) }}</small>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (submitError()) {
+        <p class="error">{{ submitError() }}</p>
+      }
+
+      <div class="actions">
+        <button mat-flat-button color="primary" type="button" [disabled]="submitting()" (click)="submitSelected()">
+          <mat-icon>play_arrow</mat-icon>
+          {{ submitting() ? "Submitting..." : "Run selected suite" }}
+        </button>
+        <button mat-stroked-button type="button" [disabled]="submitting()" (click)="submitCriticalSet()">
+          <mat-icon>playlist_play</mat-icon>
+          Run critical set
+        </button>
+      </div>
+    </section>
+  }
+</section>
+
+@if (submittedJobs().length) {
+  <section class="panel submitted-panel">
+    <div class="submitted-head">
+      <div>
+        <p class="eyebrow">Submitted</p>
+        <h2>{{ submittedJobs().length }} Quality Lab jobs queued</h2>
+      </div>
+      <a mat-stroked-button [routerLink]="['/jobs', submittedJobs()[0].id]">
+        <mat-icon>open_in_new</mat-icon>
+        Open first job
+      </a>
+    </div>
+    <div class="submitted-list">
+      @for (job of submittedJobs(); track job.id) {
+        <a class="submitted-row" [routerLink]="['/jobs', job.id]">
+          <strong>{{ job.suiteLabel }}</strong>
+          <span>{{ job.candidateLabel }}</span>
+        </a>
+      }
+    </div>
+  </section>
+}

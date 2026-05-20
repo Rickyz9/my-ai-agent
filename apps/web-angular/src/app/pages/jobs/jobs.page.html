@@ -1,0 +1,61 @@
+<header class="page-header">
+  <div>
+    <h1>Jobs</h1>
+    <p>{{ activeJobs() }} attivi · {{ liveCount() }} stream live · {{ jobs().length }} totali</p>
+  </div>
+  <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+    <mat-icon>refresh</mat-icon>
+    Aggiorna
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+<section class="panel job-controls">
+  <mat-form-field appearance="outline">
+    <mat-label>Cerca</mat-label>
+    <input matInput [value]="searchTerm()" (input)="setSearch($event)" />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Status</mat-label>
+    <mat-select [value]="statusFilter()" (selectionChange)="setStatusFilter($event.value)">
+      <mat-option value="all">Tutti</mat-option>
+      <mat-option value="queued">Queued</mat-option>
+      <mat-option value="running">Running</mat-option>
+      <mat-option value="succeeded">Succeeded</mat-option>
+      <mat-option value="failed">Failed</mat-option>
+      <mat-option value="canceled">Canceled</mat-option>
+    </mat-select>
+  </mat-form-field>
+</section>
+
+<section class="jobs-list">
+  @for (job of visibleJobs(); track job.id) {
+    <a class="job-row panel" [routerLink]="['/jobs', job.id]">
+      <div class="preview">
+        @if (job.previewPath) {
+          <img [src]="dataUrl(job.previewPath)" alt="" />
+        } @else {
+          <mat-icon>image</mat-icon>
+        }
+      </div>
+      <div>
+        <div class="row-title">
+          <strong>{{ job.workflow }}</strong>
+          <mat-chip>{{ job.status }}</mat-chip>
+        </div>
+        <p>{{ job.prompt }}</p>
+        <mat-progress-bar mode="determinate" [value]="visibleProgress(job)" />
+        <span class="muted">{{ job.createdAt | date: "short" }} · {{ job.progress }}%</span>
+      </div>
+    </a>
+  } @empty {
+    <div class="panel empty">Nessun job trovato.</div>
+  }
+</section>

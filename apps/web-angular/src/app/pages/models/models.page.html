@@ -1,0 +1,89 @@
+<header class="page-header">
+  <div>
+    <h1>Models</h1>
+    @if (registry()) {
+      <p>Root: {{ registry()?.rootDir }}</p>
+    } @else {
+      <p>Registro modelli configurati e file disponibili in ComfyUI.</p>
+    }
+  </div>
+  <button mat-stroked-button type="button" [disabled]="loading()" (click)="load()">
+    <mat-icon>refresh</mat-icon>
+    Aggiorna
+  </button>
+</header>
+
+@if (registry()) {
+  <section class="grid four model-metrics">
+    <div class="panel metric">
+      <span>Entries</span>
+      <strong>{{ totals().total }}</strong>
+    </div>
+    <div class="panel metric">
+      <span>Present</span>
+      <strong>{{ totals().present }}</strong>
+    </div>
+    <div class="panel metric">
+      <span>Required missing</span>
+      <strong>{{ totals().missingRequired }}</strong>
+    </div>
+    <div class="panel metric">
+      <span>Optional missing</span>
+      <strong>{{ totals().optionalMissing }}</strong>
+    </div>
+  </section>
+}
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+<mat-accordion multi>
+  @for (group of entriesByCategory(); track group.category) {
+    <mat-expansion-panel expanded>
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ group.category }}</mat-panel-title>
+        <mat-panel-description>{{ group.entries.length }} elementi</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div class="models-grid">
+        @for (entry of group.entries; track entry.id) {
+          <div class="model-row">
+            <div class="model-head">
+              <strong>{{ entry.label }}</strong>
+              <span class="muted">{{ entry.envVar }}</span>
+            </div>
+            <mat-chip [class]="modelTone(entry)">
+              {{ entry.exists ? "present" : entry.required ? "missing" : "optional" }}
+            </mat-chip>
+            <div class="model-details">
+              <p>Configured: <strong>{{ entry.configuredFile || "not set" }}</strong></p>
+              <p>Resolved: <strong>{{ entry.resolvedPath || "n/a" }}</strong></p>
+              @if (entry.architectureHint) {
+                <p>Architecture: <strong>{{ entry.architectureHint }}</strong></p>
+              }
+              <p>Used by: <strong>{{ entry.usedBy.join(", ") || "n/a" }}</strong></p>
+            </div>
+
+            <div class="available-files">
+              <span>Available files</span>
+              @if (entry.availableFiles.length) {
+                <div>
+                  @for (file of entry.availableFiles; track file) {
+                    <mat-chip>{{ file }}</mat-chip>
+                  }
+                </div>
+              } @else {
+                <p class="muted">Nessun file trovato nella directory.</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </mat-expansion-panel>
+  }
+</mat-accordion>

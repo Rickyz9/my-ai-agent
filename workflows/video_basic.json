@@ -1,0 +1,10 @@
+{
+  "_status": "stub",
+  "_todo": "Replace this stub with a valid ComfyUI video workflow that matches your installed custom nodes and models.",
+  "1": {
+    "class_type": "Note",
+    "inputs": {
+      "text": "TODO: wire a real video pipeline such as AnimateDiff or image-to-video. Placeholder prompt: {{prompt}}"
+    }
+  }
+}
