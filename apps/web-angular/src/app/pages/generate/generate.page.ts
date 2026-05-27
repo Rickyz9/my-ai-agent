@@ -421,7 +421,7 @@ export class GeneratePage {
       const scene = this.selectedScene();
       this.form.patchValue({
         humanStructureMode: scene?.id === "cinematic-action" ? "action" : scene?.id === "fashion-editorial" ? "full-body" : "portrait",
-        humanControlMode: "auto",
+        humanControlMode: scene?.id === "fashion-editorial" ? "openpose" : "auto",
         humanPosePresetId: scene?.modelConfig.humanPosePresetId ?? "auto"
       });
       return;
@@ -471,7 +471,7 @@ export class GeneratePage {
     );
     this.selectedWorkflow.set(scene.workflow);
     this.selectedBenchmarkId.set("");
-    this.patchModelControls(scene.modelConfig);
+    this.patchModelControls(defaultModelConfig(scene.modelConfig));
 
     if (suggestedRecipe) {
       this.applyStyleRecipe(suggestedRecipe.id);
@@ -535,10 +535,10 @@ export class GeneratePage {
       { emitEvent: false }
     );
     this.selectedWorkflow.set(scene.workflow);
-    this.patchModelControls({
+    this.patchModelControls(defaultModelConfig({
       ...scene.modelConfig,
       ...(recipe?.modelConfigOverrides ?? {})
-    });
+    }));
     this.markFormChanged();
   }
 
@@ -550,7 +550,9 @@ export class GeneratePage {
         humanStructureMode: modelConfig.humanStructureMode ?? this.form.controls.humanStructureMode.value,
         humanControlMode: modelConfig.humanControlMode ?? this.form.controls.humanControlMode.value,
         humanPosePresetId: modelConfig.humanPosePresetId ?? this.form.controls.humanPosePresetId.value,
-        controlStrength: modelConfig.controlStrength ?? this.form.controls.controlStrength.value
+        controlStrength: modelConfig.controlStrength ?? this.form.controls.controlStrength.value,
+        autoRepairOnLowScore: modelConfig.autoRepairOnLowScore ?? this.form.controls.autoRepairOnLowScore.value,
+        autoRepairThreshold: modelConfig.autoRepairThreshold ?? this.form.controls.autoRepairThreshold.value
       },
       { emitEvent: false }
     );

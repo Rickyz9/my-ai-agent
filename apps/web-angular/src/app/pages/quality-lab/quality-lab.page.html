@@ -160,7 +160,12 @@
         <div>
           <span>Auto-repair</span>
           <strong>{{ selectedLearning()?.autoRepairEnabled ? "On" : "Planned" }}</strong>
-          <small>Threshold {{ selectedLearning()?.recommendedAutoRepairThreshold ?? suite.modelConfig.autoRepairThreshold ?? 74 }}</small>
+          <small>
+            Suite {{ suite.modelConfig.autoRepairThreshold ?? 74 }}
+            @if (selectedLearning()?.recommendedAutoRepairThreshold; as threshold) {
+              · Learning {{ threshold }}
+            }
+          </small>
         </div>
         <div>
           <span>Runtime</span>

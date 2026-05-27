@@ -68,7 +68,7 @@ export type CandidateDirection = {
 };
 
 const animeNegative =
-  "worst quality, low quality, blurry, featureless black silhouette, black bodysuit, dark cyber armor, neon purple aura, glowing contour lines, overpowered energy blast, background overpowering character, messy linework, text, watermark";
+  "worst quality, low quality, blurry, featureless black silhouette, black bodysuit, dark cyber armor, neon purple aura, glowing contour lines, overpowered energy blast, background overpowering character, chaotic effects, messy linework, muddy colors, uneven eyes, fused fingers, text, watermark";
 
 export const sceneTemplates: readonly GenerationSceneTemplate[] = [
   {
@@ -80,14 +80,14 @@ export const sceneTemplates: readonly GenerationSceneTemplate[] = [
     stylePreset: "anime",
     checkpointProfileId: "anime",
     promptBlocks: [
-      "anime action character, dynamic full-body pose, intense expression",
-      "clean silhouette, readable hands, symmetrical eyes",
-      "controlled aura effects, floating debris, sharp facial features",
-      "dramatic anime background, action environment, energized scene depth"
+      "anime action character, single readable protagonist, dynamic but clear full-body pose",
+      "clean linework, symmetrical eyes, readable hands, distinct hair silhouette",
+      "detailed outfit design with separated costume layers, crisp cel shading",
+      "controlled action effects, background supports the character without overpowering"
     ],
     negativePrompt:
-      "worst quality, low quality, blurry, bad anatomy, bad hands, fused fingers, extra limbs, distorted face, asymmetrical eyes, messy aura, plain white backdrop, empty studio background, text, watermark",
-    params: { steps: 30, cfg: 4, samplerName: "er_sde", scheduler: "simple", width: 1024, height: 1024 },
+      "worst quality, low quality, blurry, bad anatomy, bad hands, fused fingers, extra limbs, distorted face, asymmetrical eyes, featureless black silhouette, default black bodysuit, dark cyber armor, messy aura, chaotic effects, background overpowering character, text, watermark",
+    params: { steps: 32, cfg: 3.9, samplerName: "er_sde", scheduler: "simple", width: 1024, height: 1024 },
     modelConfig: { checkpointProfileId: "anime", enableRefiner: false, enableLora: false, enableDetailPass: false }
   },
   {
@@ -303,25 +303,29 @@ export const sceneTemplates: readonly GenerationSceneTemplate[] = [
     family: "human",
     label: "Fashion Editorial",
     description: "Garment clarity, pose discipline, human structure.",
-    workflow: "sdxl_text2img",
+    workflow: "sdxl_openpose_text2img",
     stylePreset: "editorial",
     checkpointProfileId: "photoreal-sdxl",
     promptBlocks: [
-      "fashion editorial portrait, single focal model, high-end styling hierarchy",
-      "clean pose discipline, readable garments, premium fabric separation",
-      "studio editorial lighting, polished skin detail, uncluttered set"
+      "head-to-toe fashion editorial photograph, one adult model, single continuous body, high-end styling hierarchy",
+      "disciplined runway pose, face fully visible, natural eyes and mouth, relaxed hands separated from torso",
+      "both shoes fully visible and grounded, clean ankles, believable footwear construction",
+      "readable garments with crisp seams, tailoring edges, natural fabric folds, fabric separated from skin",
+      "studio editorial lighting, uncluttered magazine set, polished but realistic skin texture"
     ],
     negativePrompt:
-      "waxy skin, asymmetrical eyes, twisted pose, broken fabric folds, cheap glamour, messy styling, clutter, text, watermark",
-    params: { steps: 34, cfg: 5.5, samplerName: "dpmpp_2m_sde", scheduler: "karras", width: 832, height: 1216 },
+      "waxy skin, blurry face, asymmetrical eyes, warped mouth, twisted pose, duplicate body, merged limbs, hidden hands, hand occlusion hiding defects, extra fingers, fused fingers, broken wrists, cropped feet, warped feet, melted shoes, broken ankles, broken fabric folds, fabric fused to skin, cheap glamour, messy styling, clutter, text, watermark",
+    params: { steps: 38, cfg: 4.85, samplerName: "dpmpp_2m_sde", scheduler: "karras", width: 832, height: 1216 },
     modelConfig: {
       checkpointProfileId: "photoreal-sdxl",
       humanStructureMode: "full-body",
-      humanControlMode: "auto",
+      humanControlMode: "openpose",
       humanPosePresetId: "walking-fashion",
+      controlStrength: 0.78,
       enableRefiner: false,
       enableLora: false,
-      enableDetailPass: false
+      enableDetailPass: false,
+      autoRepairThreshold: 78
     }
   },
   {
@@ -357,13 +361,14 @@ export const sceneTemplates: readonly GenerationSceneTemplate[] = [
     stylePreset: "cinematic",
     checkpointProfileId: "photoreal-sdxl",
     promptBlocks: [
-      "cinematic action scene, dynamic conflict, readable impact moment",
-      "strong setpiece depth, motivated practical lighting, dramatic environment interaction",
-      "heroic action silhouette, blockbuster realism, clean foreground to background separation"
+      "cinematic action scene with one readable hero subject, clear impact moment",
+      "fast shutter action clarity, separated arms and legs, clean heroic silhouette",
+      "strong setpiece depth, motivated practical lighting, readable environment interaction",
+      "blockbuster realism, clean foreground to background separation, controlled debris"
     ],
     negativePrompt:
-      "plain white backdrop, static studio portrait, still-life composition, muddy motion blur, confused limbs, duplicate subject, text, watermark",
-    params: { steps: 36, cfg: 5.1, samplerName: "dpmpp_2m_sde", scheduler: "karras", width: 1344, height: 768 },
+      "plain white backdrop, static studio portrait, still-life composition, muddy motion blur, confused limbs, duplicate subject, merged limbs, extra arms, extra legs, broken hands, warped feet, background overpowering subject, text, watermark",
+    params: { steps: 38, cfg: 4.9, samplerName: "dpmpp_2m_sde", scheduler: "karras", width: 1344, height: 768 },
     modelConfig: {
       checkpointProfileId: "photoreal-sdxl",
       humanStructureMode: "action",
@@ -470,6 +475,31 @@ export const sceneTemplates: readonly GenerationSceneTemplate[] = [
 
 export const styleRecipes: readonly GenerationStyleRecipe[] = [
   {
+    id: "anime-action-readable",
+    label: "Anime Action Readable",
+    family: "anime",
+    targetSceneIds: ["anime-action-character"],
+    reinforceBlocks: [
+      "single readable protagonist",
+      "clean action linework",
+      "distinct outfit design",
+      "character brighter and sharper than the background",
+      "controlled aura and debris effects"
+    ],
+    negativeBlocks: [
+      "featureless black silhouette",
+      "default black bodysuit",
+      "dark cyber armor",
+      "neon aura overload",
+      "glowing contour overload",
+      "chaotic effects",
+      "background overpowering character",
+      "messy linework"
+    ],
+    paramsOverrides: { cfg: 3.9, steps: 32 },
+    modelConfigOverrides: { enableDetailPass: false, enableRefiner: false, enableLora: false }
+  },
+  {
     id: "anime-clean",
     label: "Anime Clean",
     family: "anime",
@@ -487,6 +517,49 @@ export const styleRecipes: readonly GenerationStyleRecipe[] = [
       "uneven eyes"
     ],
     paramsOverrides: { cfg: 4, steps: 29 }
+  },
+  {
+    id: "fashion-editorial-detail",
+    label: "Fashion Editorial Detail",
+    family: "human",
+    targetSceneIds: ["fashion-editorial"],
+    reinforceBlocks: [
+      "head-to-toe fashion editorial photograph",
+      "face fully visible with natural eyes and clean mouth anatomy",
+      "visible relaxed hands with separated fingers away from torso",
+      "grounded feet, clean ankles, believable footwear shape",
+      "readable garment seams, tailoring edges, and natural fabric folds",
+      "premium fabric texture separated from skin"
+    ],
+    negativeBlocks: [
+      "blurry face",
+      "warped mouth",
+      "extra fingers",
+      "fused fingers",
+      "hidden hands",
+      "broken wrists",
+      "cropped feet",
+      "warped feet",
+      "melted shoes",
+      "broken ankles",
+      "merged limbs",
+      "broken fabric folds",
+      "fabric fused to skin",
+      "messy styling"
+    ],
+    paramsOverrides: { cfg: 4.75, steps: 39 },
+    modelConfigOverrides: {
+      humanStructureMode: "full-body",
+      humanControlMode: "openpose",
+      humanPosePresetId: "walking-fashion",
+      controlStrength: 0.78,
+      enableDetailPass: false,
+      enableRefiner: false,
+      enableLora: false,
+      loraName: "",
+      loraChain: [],
+      autoRepairThreshold: 78
+    }
   },
   {
     id: "photoreal-clean",
@@ -526,6 +599,40 @@ export const styleRecipes: readonly GenerationStyleRecipe[] = [
       humanStructureMode: "full-body",
       humanControlMode: "auto",
       humanPosePresetId: "auto",
+      enableDetailPass: false,
+      enableRefiner: false,
+      enableLora: false,
+      loraName: "",
+      loraChain: []
+    }
+  },
+  {
+    id: "cinematic-action-readable",
+    label: "Cinematic Action Readable",
+    family: "human",
+    targetSceneIds: ["cinematic-action"],
+    reinforceBlocks: [
+      "one readable hero subject",
+      "clear impact timing",
+      "fast shutter action clarity",
+      "separated arms and legs with clean silhouette",
+      "subject remains brighter and sharper than the setpiece"
+    ],
+    negativeBlocks: [
+      "muddy motion blur",
+      "confused limbs",
+      "merged limbs",
+      "duplicate subject",
+      "extra arms",
+      "extra legs",
+      "background overpowering subject",
+      "chaotic debris cloud"
+    ],
+    paramsOverrides: { cfg: 4.85, steps: 38 },
+    modelConfigOverrides: {
+      humanStructureMode: "action",
+      humanControlMode: "auto",
+      humanPosePresetId: "running-action",
       enableDetailPass: false,
       enableRefiner: false,
       enableLora: false,
@@ -596,6 +703,16 @@ export const benchmarkPrompts: readonly BenchmarkPrompt[] = [
       "worst quality, low quality, blurry, featureless black silhouette, black bodysuit, dark cyber armor, neon purple aura, overpowered energy blast, messy armor mass, cluttered costume, text, watermark"
   },
   {
+    id: "benchmark-anime-action-readable",
+    label: "Anime Action Readable",
+    sceneId: "anime-action-character",
+    styleRecipeId: "anime-action-readable",
+    prompt:
+      "anime action character leaping forward with a clear heroic pose, single readable protagonist, sharp face and hair silhouette, distinct outfit design, clean action linework, controlled aura effects, background supports the character without overpowering",
+    negativePrompt:
+      "worst quality, low quality, blurry, featureless black silhouette, default black bodysuit, dark cyber armor, neon aura overload, chaotic effects, messy linework, uneven eyes, fused fingers, text, watermark"
+  },
+  {
     id: "benchmark-beauty-clean-campaign",
     label: "Beauty Clean Campaign",
     sceneId: "beauty-closeup",
@@ -608,11 +725,21 @@ export const benchmarkPrompts: readonly BenchmarkPrompt[] = [
     id: "benchmark-fashion-structure",
     label: "Fashion Structure",
     sceneId: "fashion-editorial",
-    styleRecipeId: "human-structure",
+    styleRecipeId: "fashion-editorial-detail",
     prompt:
-      "full-body fashion editorial photograph, single model standing in a clean studio set, readable garment shape, relaxed hands separated from torso, both feet grounded, believable footwear, polished magazine lighting",
+      "head-to-toe fashion editorial photograph, one adult model standing in a clean studio set, face fully visible with natural eyes and mouth, relaxed hands separated from torso, both shoes fully visible and grounded, believable footwear construction, readable garment seams, crisp tailoring edges, natural fabric folds, premium fabric texture, polished magazine lighting",
     negativePrompt:
-      "duplicate body, merged limbs, extra arms, extra legs, extra fingers, fused fingers, warped feet, melted shoes, cropped feet, text, watermark"
+      "blurry face, warped mouth, duplicate body, merged limbs, extra arms, extra legs, hidden hands, extra fingers, fused fingers, broken wrists, cropped feet, warped feet, melted shoes, broken ankles, broken fabric folds, fabric fused to skin, text, watermark"
+  },
+  {
+    id: "benchmark-cinematic-action-readable",
+    label: "Cinematic Action Readable",
+    sceneId: "cinematic-action",
+    styleRecipeId: "cinematic-action-readable",
+    prompt:
+      "cinematic action scene with one readable hero subject, clear impact timing, fast shutter action clarity, separated arms and legs, clean heroic silhouette, controlled debris, motivated practical lighting, readable setpiece depth",
+    negativePrompt:
+      "muddy motion blur, confused limbs, merged limbs, duplicate subject, extra arms, extra legs, broken hands, warped feet, background overpowering subject, chaotic debris cloud, text, watermark"
   },
   {
     id: "benchmark-product-label",
@@ -705,6 +832,151 @@ export function defaultModelConfig(overrides: Partial<ModelConfig> = {}): ModelC
 
 export function candidateDirectionsForScene(sceneId: GenerationSceneId | "" | null | undefined): readonly CandidateDirection[] {
   const scene = findSceneTemplate(sceneId);
+  if (scene?.id === "anime-action-character") {
+    return [
+      {
+        label: "Clean Action Linework",
+        promptBlocks: [
+          "clean action linework",
+          "sharp character outline",
+          "symmetrical eyes",
+          "readable hands and fingers",
+          "crisp cel shading"
+        ],
+        negativeBlocks: ["messy linework", "uneven eyes", "fused fingers", "muddy character edges", "motion smear"],
+        paramsOverrides: { cfg: 3.85, steps: 32 }
+      },
+      {
+        label: "Character First",
+        promptBlocks: [
+          "single readable protagonist",
+          "character brighter than background",
+          "clear face and hair silhouette",
+          "controlled aura effects",
+          "background supports the pose"
+        ],
+        negativeBlocks: ["background overpowering character", "featureless black silhouette", "neon aura overload", "chaotic effects"]
+      },
+      {
+        label: "Costume Readability",
+        promptBlocks: [
+          "distinct outfit design",
+          "separated costume layers",
+          "readable armor or cloth panels",
+          "clean accessory shapes",
+          "polished production character art"
+        ],
+        negativeBlocks: ["default black bodysuit", "dark cyber armor mass", "unreadable costume", "cluttered silhouette"],
+        paramsOverrides: { cfg: 4.0, steps: 33 }
+      }
+    ];
+  }
+
+  if (scene?.id === "fashion-editorial") {
+    return [
+      {
+        label: "Hands / Feet Safe",
+        promptBlocks: [
+          "head-to-toe model framing",
+          "visible relaxed hands with separated fingers",
+          "hands away from torso",
+          "natural wrists",
+          "grounded feet",
+          "believable footwear shape",
+          "clean ankle structure"
+        ],
+        negativeBlocks: ["hidden hands", "extra fingers", "fused fingers", "broken wrists", "cropped feet", "warped feet", "melted shoes"],
+        paramsOverrides: { cfg: 4.65, steps: 39 },
+        modelConfigOverrides: {
+          enableDetailPass: false,
+          enableRefiner: false,
+          humanStructureMode: "full-body",
+          humanControlMode: "openpose",
+          humanPosePresetId: "walking-fashion",
+          controlStrength: 0.78
+        }
+      },
+      {
+        label: "Garment Detail",
+        promptBlocks: [
+          "fashion lookbook clarity",
+          "readable garment seams",
+          "crisp tailoring edges",
+          "premium fabric texture",
+          "natural fabric folds",
+          "outfit separated from body"
+        ],
+        negativeBlocks: ["broken fabric folds", "melted clothing", "messy styling", "fabric fused to skin", "plastic fabric"],
+        paramsOverrides: { cfg: 4.8, steps: 39 },
+        modelConfigOverrides: { enableDetailPass: false, humanControlMode: "openpose", controlStrength: 0.76 }
+      },
+      {
+        label: "Pose Discipline",
+        promptBlocks: [
+          "disciplined runway pose",
+          "face fully visible",
+          "balanced shoulder and hip alignment",
+          "clean body line",
+          "limbs separated from torso",
+          "single continuous body"
+        ],
+        negativeBlocks: ["twisted pose", "duplicate body", "merged limbs", "impossible stance", "broken spine", "blurry face"],
+        paramsOverrides: { cfg: 4.7, steps: 38 },
+        modelConfigOverrides: {
+          enableDetailPass: false,
+          enableRefiner: false,
+          humanStructureMode: "full-body",
+          humanControlMode: "openpose",
+          humanPosePresetId: "walking-fashion",
+          controlStrength: 0.8
+        }
+      }
+    ];
+  }
+
+  if (scene?.id === "cinematic-action") {
+    return [
+      {
+        label: "Readable Impact",
+        promptBlocks: [
+          "clear impact timing",
+          "fast shutter action clarity",
+          "one readable hero subject",
+          "controlled debris",
+          "clean action silhouette"
+        ],
+        negativeBlocks: ["muddy motion blur", "chaotic debris cloud", "duplicate subject", "unclear impact"],
+        paramsOverrides: { cfg: 4.75, steps: 38 },
+        modelConfigOverrides: { enableDetailPass: false, enableRefiner: false, humanStructureMode: "action" }
+      },
+      {
+        label: "Action Anatomy",
+        promptBlocks: [
+          "separated arms and legs",
+          "anatomically plausible action pose",
+          "readable hands if visible",
+          "stable feet and stance",
+          "clean limb silhouette"
+        ],
+        negativeBlocks: ["confused limbs", "merged limbs", "extra arms", "extra legs", "broken hands", "warped feet"],
+        paramsOverrides: { cfg: 4.65, steps: 38 },
+        modelConfigOverrides: { enableDetailPass: false, enableRefiner: false, humanStructureMode: "action" }
+      },
+      {
+        label: "Subject Separation",
+        promptBlocks: [
+          "subject remains brighter and sharper than the setpiece",
+          "clear foreground midground background separation",
+          "readable environment interaction",
+          "motivated practical lighting",
+          "controlled atmosphere"
+        ],
+        negativeBlocks: ["background overpowering subject", "muddy haze", "flat grading", "unclear focal point"],
+        paramsOverrides: { cfg: 4.9, steps: 37 }
+      }
+    ];
+  }
+
   if (scene?.family === "anime") {
     return [
       {

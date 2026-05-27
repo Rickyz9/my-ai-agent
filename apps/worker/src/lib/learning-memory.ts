@@ -232,7 +232,12 @@ function repairTargetDelta(record: LearningRecord) {
     return record.repairCompositionDelta ?? record.repairDelta;
   }
 
-  if (record.repairId === "premium-materials" || record.repairId === "geometry-cleanup" || record.repairId === "label-text-safe") {
+  if (
+    record.repairId === "premium-materials" ||
+    record.repairId === "garment-detail-fix" ||
+    record.repairId === "geometry-cleanup" ||
+    record.repairId === "label-text-safe"
+  ) {
     return record.repairMaterialDelta ?? record.repairDelta;
   }
 

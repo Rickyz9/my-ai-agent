@@ -49,11 +49,17 @@ async function hasConfiguredOpenPoseControlNet() {
 }
 
 async function prepareHumanPoseControlInput(input: CreateJobInput): Promise<CreateJobInput> {
-  if (input.workflow !== "sdxl_openpose_text2img") {
+  const modelConfig = modelConfigSchema.parse(input.modelConfig ?? {});
+  const shouldUseOpenPose =
+    input.workflow === "sdxl_openpose_text2img" ||
+    modelConfig.humanControlMode === "openpose" ||
+    (modelConfig.humanControlMode === "auto" &&
+      (modelConfig.humanStructureMode === "full-body" || modelConfig.humanStructureMode === "action"));
+
+  if (!shouldUseOpenPose) {
     return input;
   }
 
-  const modelConfig = modelConfigSchema.parse(input.modelConfig ?? {});
   if (!(await hasConfiguredOpenPoseControlNet())) {
     return {
       ...input,
@@ -74,6 +80,7 @@ async function prepareHumanPoseControlInput(input: CreateJobInput): Promise<Crea
   if (modelConfig.controlImageName?.trim()) {
     return {
       ...input,
+      workflow: "sdxl_openpose_text2img",
       modelConfig: {
         ...modelConfig,
         humanControlMode: "openpose"
@@ -98,6 +105,7 @@ async function prepareHumanPoseControlInput(input: CreateJobInput): Promise<Crea
 
   return {
     ...input,
+    workflow: "sdxl_openpose_text2img",
     modelConfig: {
       ...modelConfig,
       humanControlMode: "openpose",

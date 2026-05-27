@@ -389,6 +389,7 @@ const supportedRepairIds = [
   "feet-anatomy-fix",
   "reduce-drift",
   "premium-materials",
+  "garment-detail-fix",
   "geometry-cleanup",
   "label-text-safe",
   "subject-separation",
@@ -448,6 +449,7 @@ function normalizeRepairIds(repairIds: string[]): SupportedRepairId[] {
         .map((repairId) => repairId.trim())
         .map((repairId) => (repairId === "hands-detail" ? "hand-anatomy-fix" : repairId))
         .map((repairId) => (repairId === "foot-detail" || repairId === "feet-detail" ? "feet-anatomy-fix" : repairId))
+        .map((repairId) => (repairId === "garment-detail" || repairId === "fabric-detail" ? "garment-detail-fix" : repairId))
         .map((repairId) => (repairId === "text-cleanup" || repairId === "label-cleanup" ? "label-text-safe" : repairId))
         .filter((repairId): repairId is SupportedRepairId => supported.has(repairId))
     )
@@ -579,11 +581,11 @@ function scoreBatchCandidateByCategory(
   if (categoryId === "fashion-editorial") {
     if (structuredHumanLane) {
       return (
-        evaluation.overallScore * 0.18 +
-        evaluation.faceScore * 0.16 +
+        evaluation.overallScore * 0.14 +
+        evaluation.faceScore * 0.22 +
         evaluation.handsScore * 0.32 +
-        evaluation.materialScore * 0.12 +
-        evaluation.compositionScore * 0.22
+        evaluation.materialScore * 0.14 +
+        evaluation.compositionScore * 0.18
       );
     }
 
@@ -688,7 +690,7 @@ function getVisionRubricForCategory(renderCategoryId: string | undefined) {
     return {
       focus:
         "Prioritize face quality, eye and mouth fidelity, hand clarity, foot and footwear structure, pose discipline, garment readability, fabric realism, and clean editorial styling hierarchy. Penalize broken fingers, warped feet, melted shoes, twisted ankles, broken folds, messy styling, cheap glamour drift, awkward pose lines, or weak face fidelity.",
-      repairs: "Prefer hand-anatomy-fix for bad fingers or hands; prefer feet-anatomy-fix for feet, footwear, or ankle defects; prefer eye-mouth-detail for face-detail defects; prefer premium-materials only when garment/material realism is the main weakness."
+      repairs: "Prefer eye-mouth-detail for eye or mouth defects; prefer hand-anatomy-fix for bad fingers or hands; prefer feet-anatomy-fix for feet, footwear, or ankle defects; prefer garment-detail-fix when seams, tailoring, fabric folds, or outfit edges are weak."
     };
   }
 
@@ -1343,6 +1345,37 @@ function buildAutoRepairOverride(source: {
             ? { loraStrength: 0.5 }
             : {}
       };
+    case "garment-detail-fix":
+      return {
+        params: {
+          steps: Math.min(source.steps + 4, 40),
+          cfg: Math.max(4.45, source.cfg - 0.55),
+          prompt: mergePromptParts(
+            source.prompt,
+            "crisp tailoring seams",
+            "clean garment edges",
+            "natural fabric folds",
+            "fabric separated from skin",
+            "believable textile texture"
+          ),
+          negativePrompt: mergePromptParts(
+            source.negativePrompt,
+            "melted clothing",
+            "fabric fused to skin",
+            "broken seams",
+            "muddy textile detail",
+            "plastic fabric"
+          )
+        },
+        modelConfig: {
+          humanStructureMode: getHumanStructureRepairMode(source.modelConfig),
+          enableDetailPass: false,
+          enableRefiner: false,
+          enableLora: false,
+          loraName: "",
+          loraChain: []
+        }
+      };
     case "label-text-safe":
       return {
         params: {
@@ -1502,19 +1535,25 @@ function localizedRepairDenoise(repairId: string) {
       return 0.36;
     case "label-text-safe":
       return 0.42;
+    case "garment-detail-fix":
+      return 0.31;
     default:
       return 0.35;
   }
 }
 
 function localizedRepairSteps(repairId: string, requestedSteps: number) {
-  const maxSteps = repairId === "label-text-safe" ? 38 : 36;
+  const maxSteps = repairId === "label-text-safe" || repairId === "garment-detail-fix" ? 38 : 36;
   return Math.min(Math.max(24, requestedSteps), maxSteps);
 }
 
 function localizedRepairCfg(repairId: string, requestedCfg: number) {
   if (repairId === "label-text-safe") {
     return Math.max(4.2, Math.min(requestedCfg, 5.2));
+  }
+
+  if (repairId === "garment-detail-fix") {
+    return Math.max(4.35, Math.min(requestedCfg, 5.25));
   }
 
   return Math.max(4.4, Math.min(requestedCfg, 5.6));
@@ -1588,6 +1627,15 @@ function shouldAutoRepairEvaluation(
 
   if (!isStructuredHumanRepairTarget(modelConfig)) {
     return false;
+  }
+
+  if (modelConfig?.renderCategoryId === "fashion-editorial") {
+    return (
+      evaluation.faceScore < 82 ||
+      evaluation.handsScore < 86 ||
+      evaluation.compositionScore < 82 ||
+      evaluation.materialScore < 80
+    );
   }
 
   return evaluation.handsScore < 82 || evaluation.faceScore < 78 || evaluation.compositionScore < 78;
@@ -1673,28 +1721,32 @@ function inferRepairTargets(
     /\b(text|typography|label|logo|brand|packaging|letters|word|headline|title|etichet|testo|lettere|marchio)\b/i.test(prompt);
 
   if (
-    evaluation.faceScore < 78 ||
+    evaluation.faceScore < (categoryId === "fashion-editorial" ? 82 : 78) ||
     hasAnyIssue(issueText, ["face", "eye", "eyes", "pupil", "iris", "mouth", "lips", "teeth", "volto", "occhi", "bocca"])
   ) {
-    addRepairTarget(targets, "face", 78 - evaluation.faceScore + 8, "face, eyes, or mouth below target");
+    const faceTargetScore = categoryId === "fashion-editorial" ? 82 : 78;
+    addRepairTarget(targets, "face", faceTargetScore - evaluation.faceScore + 8, "face, eyes, or mouth below target");
   }
 
   if (
     family === "human" &&
-    (evaluation.handsScore < 82 || hasAnyIssue(issueText, ["hand", "hands", "finger", "fingers", "wrist", "dita", "mani"]))
+    (evaluation.handsScore < (categoryId === "fashion-editorial" ? 86 : 82) ||
+      hasAnyIssue(issueText, ["hand", "hands", "finger", "fingers", "wrist", "dita", "mani"]))
   ) {
-    addRepairTarget(targets, "hands", 82 - evaluation.handsScore + 10, "human hand anatomy risk");
+    const handsTargetScore = categoryId === "fashion-editorial" ? 86 : 82;
+    addRepairTarget(targets, "hands", handsTargetScore - evaluation.handsScore + 10, "human hand anatomy risk");
   }
 
   if (
     family === "human" &&
     (mentionsFeet || hasAnyIssue(issueText, ["foot", "feet", "shoe", "shoes", "ankle", "toe", "piede", "piedi", "scarpe"]))
   ) {
-    addRepairTarget(targets, "feet", 78 - evaluation.handsScore + 8, "feet, footwear, or lower-body stability risk");
+    const feetTargetScore = categoryId === "fashion-editorial" ? 84 : 78;
+    addRepairTarget(targets, "feet", feetTargetScore - evaluation.handsScore + 8, "feet, footwear, or lower-body stability risk");
   }
 
   if (
-    evaluation.compositionScore < 78 ||
+    evaluation.compositionScore < (categoryId === "fashion-editorial" ? 82 : 78) ||
     hasAnyIssue(issueText, [
       "duplicate",
       "double",
@@ -1709,7 +1761,8 @@ function inferRepairTargets(
       "confused"
     ])
   ) {
-    addRepairTarget(targets, "composition", 78 - evaluation.compositionScore + 8, "composition, separation, or drift below target");
+    const compositionTargetScore = categoryId === "fashion-editorial" ? 82 : 78;
+    addRepairTarget(targets, "composition", compositionTargetScore - evaluation.compositionScore + 8, "composition, separation, or drift below target");
   }
 
   if (
@@ -1731,6 +1784,27 @@ function inferRepairTargets(
     (evaluation.materialScore < 70 || hasAnyIssue(issueText, ["reflection", "material", "glare", "plastic", "glass", "texture"]))
   ) {
     addRepairTarget(targets, "material", 70 - evaluation.materialScore + 6, "material response or reflection quality below target");
+  }
+
+  if (
+    categoryId === "fashion-editorial" &&
+    (evaluation.materialScore < 80 ||
+      hasAnyIssue(issueText, [
+        "garment",
+        "fabric",
+        "cloth",
+        "clothing",
+        "seam",
+        "tailor",
+        "fold",
+        "texture",
+        "outfit",
+        "melted clothing",
+        "tessuto",
+        "vestito"
+      ]))
+  ) {
+    addRepairTarget(targets, "material", 80 - evaluation.materialScore + 8, "fashion garment or textile detail below target");
   }
 
   if (
@@ -1827,6 +1901,11 @@ function addTargetCandidates(
       pushRepairCandidate(plans, "premium-materials", 14 + severityBoost * 0.5, signal.target, signal.reason);
       return;
     case "material":
+      if (modelConfig?.renderCategoryId === "fashion-editorial") {
+        pushRepairCandidate(plans, "garment-detail-fix", 38 + severityBoost, signal.target, signal.reason);
+        pushRepairCandidate(plans, "premium-materials", 18 + severityBoost * 0.45, signal.target, signal.reason);
+        return;
+      }
       pushRepairCandidate(plans, "premium-materials", 32 + severityBoost, signal.target, signal.reason);
       pushRepairCandidate(plans, "geometry-cleanup", 12 + severityBoost * 0.45, signal.target, signal.reason);
       return;
@@ -1875,6 +1954,10 @@ function buildStrategicRepairCandidates(
 
 function maxRepairCandidatesForStrategy(family: RepairFamily, targets: RepairTarget[], modelConfig: ModelConfig | null | undefined) {
   const targetSet = new Set(targets);
+  if (modelConfig?.renderCategoryId === "fashion-editorial") {
+    return targetSet.has("material") || targetSet.has("face") ? 3 : 2;
+  }
+
   if (family === "human" && (isStructuredHumanRepairTarget(modelConfig) || targetSet.has("hands") || targetSet.has("feet"))) {
     return 2;
   }

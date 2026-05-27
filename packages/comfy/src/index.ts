@@ -15,7 +15,7 @@ export type HumanPosePresetId =
   | "seated-portrait"
   | "upper-body-portrait";
 export type ResolvedHumanPosePresetId = Exclude<HumanPosePresetId, "auto">;
-export type LocalizedRepairMaskArea = "face" | "hands" | "feet" | "text";
+export type LocalizedRepairMaskArea = "face" | "hands" | "feet" | "text" | "garment";
 
 export type ComfyClientOptions = {
   baseUrl: string;
@@ -398,6 +398,10 @@ export function getLocalizedRepairMaskArea(repairId: string): LocalizedRepairMas
     return "text";
   }
 
+  if (repairId === "garment-detail-fix") {
+    return "garment";
+  }
+
   return null;
 }
 
@@ -544,6 +548,46 @@ export function buildLocalizedInpaintMask(input: {
 
   if (area === "text") {
     drawMaskRect(pixels, safeWidth, safeHeight, 0.28, 0.38, 0.44, 0.24);
+  }
+
+  if (area === "garment") {
+    const presetId = resolveHumanPosePresetId({
+      renderCategoryId: input.renderCategoryId ?? null,
+      humanStructureMode: input.humanStructureMode ?? null,
+      ...(input.humanPosePresetId ? { requestedPresetId: input.humanPosePresetId } : {}),
+      ...(input.prompt ? { prompt: input.prompt } : {})
+    });
+    const pose = posePresets[presetId];
+    const leftShoulder = pose.leftShoulder ?? { x: 0.42, y: 0.27 };
+    const rightShoulder = pose.rightShoulder ?? { x: 0.58, y: 0.27 };
+    const leftHip = pose.leftHip ?? { x: 0.44, y: 0.55 };
+    const rightHip = pose.rightHip ?? { x: 0.56, y: 0.55 };
+    const midHip = pose.midHip ?? { x: 0.5, y: 0.54 };
+    const shoulderLeft = Math.min(leftShoulder.x, rightShoulder.x) - 0.06;
+    const shoulderRight = Math.max(leftShoulder.x, rightShoulder.x) + 0.06;
+    const torsoTop = Math.min(leftShoulder.y, rightShoulder.y) - 0.02;
+    const torsoBottom = midHip.y + 0.08;
+    const hipLeft = Math.min(leftHip.x, rightHip.x) - 0.08;
+    const hipRight = Math.max(leftHip.x, rightHip.x) + 0.08;
+
+    drawMaskRect(
+      pixels,
+      safeWidth,
+      safeHeight,
+      shoulderLeft,
+      torsoTop,
+      shoulderRight - shoulderLeft,
+      torsoBottom - torsoTop
+    );
+    drawMaskRect(
+      pixels,
+      safeWidth,
+      safeHeight,
+      hipLeft,
+      midHip.y - 0.02,
+      hipRight - hipLeft,
+      0.34
+    );
   }
 
   return {

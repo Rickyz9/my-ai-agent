@@ -107,23 +107,23 @@ export const qualitySuites: readonly BenchmarkSuite[] = [
   },
   {
     id: "fashion-hands-feet",
-    label: "Fashion Hands / Feet",
+    label: "Fashion Editorial Detail",
     family: "human",
     categoryId: "fashion-editorial",
-    styleRecipeId: "quality-lab-realvis-human",
+    styleRecipeId: "fashion-editorial-detail",
     priority: "critical",
-    description: "Figura intera per mani, piedi, scarpe, posa e tessuti.",
+    description: "Figura intera controllata per volto, mani, piedi/scarpe e tessuti.",
     checkpointProfileId: "photoreal-sdxl",
     requiredModelIds: ["photoreal-sdxl-checkpoint", "controlnet-openpose", "sdxl-negative-embedding"],
     providerModel: "RealVisXL local",
     providerReason: "Categoria ad alto rischio anatomico da misurare con batch controllati.",
-    successCriteria: ["Mani leggibili", "Piedi/scarpe stabili", "Limb separation", "Outfit non fuso al corpo"],
+    successCriteria: ["Volto leggibile", "Mani leggibili", "Piedi/scarpe stabili", "Outfit non fuso al corpo"],
     params: {
       prompt:
-        "fashion editorial full-body portrait of one adult woman, high-end tailored outfit, elegant high heels, visible hands with relaxed fingers, stable feet and footwear shape, clean leg line, disciplined studio pose, premium fabric separation, uncluttered editorial set, photoreal magazine lighting",
+        "head-to-toe fashion editorial photograph of one adult woman, high-end tailored outfit, face fully visible with natural eyes and clean mouth anatomy, visible hands with relaxed fingers away from torso, stable feet and believable footwear shape, clean leg line, readable garment seams, crisp tailoring edges, natural fabric folds, premium fabric separation, uncluttered editorial set, photoreal magazine lighting",
       negativePrompt: humanNegative,
-      steps: 35,
-      cfg: 5.15,
+      steps: 38,
+      cfg: 4.85,
       samplerName: "dpmpp_2m_sde",
       scheduler: "karras",
       width: 832,
@@ -133,19 +133,40 @@ export const qualitySuites: readonly BenchmarkSuite[] = [
       humanStructureMode: "full-body",
       humanControlMode: "openpose",
       humanPosePresetId: "walking-fashion",
+      controlStrength: 0.78,
       enableDetailPass: false,
-      autoRepairThreshold: 76
+      autoRepairThreshold: 78
     },
     candidates: [
+      {
+        id: "face-fidelity",
+        label: "Face Fidelity",
+        focus: "Occhi, bocca e proporzioni del volto.",
+        successCriteria: ["Occhi simmetrici", "Bocca naturale", "Volto non sfocato", "Pelle non cerosa"],
+        promptSuffix:
+          "clear face fidelity, symmetrical eyes, aligned pupils, natural mouth anatomy, believable skin texture",
+        negativeSuffix: "blurry face, dead eyes, crossed eyes, misaligned pupils, warped mouth, waxy skin",
+        params: { cfg: 4.75 }
+      },
       {
         id: "hands-feet-safe",
         label: "Hands / Feet Safe",
         focus: "Mani, dita, piedi e scarpe.",
         successCriteria: ["Cinque dita quando visibili", "Polsi non rotti", "Scarpe simmetriche", "Appoggio credibile"],
         promptSuffix:
-          "natural hand anatomy, five clear fingers on each visible hand, stable feet, believable shoe structure, grounded stance",
-        negativeSuffix: "extra fingers, missing fingers, fused fingers, broken wrists, warped feet, melted shoes, broken ankles",
-        params: { cfg: 4.9 }
+          "natural hand anatomy, five clear fingers on each visible hand, hands away from torso, stable feet, believable shoe structure, grounded stance",
+        negativeSuffix: "hidden hands, extra fingers, missing fingers, fused fingers, broken wrists, cropped feet, warped feet, melted shoes, broken ankles",
+        params: { cfg: 4.65 }
+      },
+      {
+        id: "garment-readability",
+        label: "Garment Readability",
+        focus: "Tessuti, outfit e separazione dei materiali.",
+        successCriteria: ["Cuciture leggibili", "Pieghe naturali", "Materiali separati", "Bordi outfit netti"],
+        promptSuffix:
+          "readable garment structure, clean fabric folds, premium textile texture, clear outfit hierarchy, crisp tailoring edges, fabric separated from skin",
+        negativeSuffix: "broken fabric folds, melted clothing, fabric fused to skin, plastic fabric, messy styling, clutter",
+        params: { steps: 39, cfg: 4.8 }
       },
       {
         id: "pose-discipline",
@@ -154,17 +175,74 @@ export const qualitySuites: readonly BenchmarkSuite[] = [
         successCriteria: ["Spalle e bacino coerenti", "Niente torsioni impossibili", "Arti separati", "Postura bilanciata"],
         promptSuffix:
           "elegant balanced stance, clean body line, anatomically plausible limb proportions, readable silhouette, stable shoulder and hip alignment",
-        negativeSuffix: "twisted pose, broken spine, impossible stance, confused limbs"
+        negativeSuffix: "twisted pose, broken spine, impossible stance, confused limbs",
+        params: { cfg: 4.7 }
+      }
+    ]
+  },
+  {
+    id: "cinematic-action-readable",
+    label: "Cinematic Action Readability",
+    family: "human",
+    categoryId: "cinematic-action",
+    styleRecipeId: "cinematic-action-readable",
+    priority: "critical",
+    description: "Action fotoreal per silhouette, arti, impatto e separazione dal setpiece.",
+    checkpointProfileId: "photoreal-sdxl",
+    requiredModelIds: ["photoreal-sdxl-checkpoint", "controlnet-openpose", "sdxl-negative-embedding"],
+    providerModel: "RealVisXL local",
+    providerReason: "Lane ad alto rischio: va misurata con pose controllate e action readability.",
+    successCriteria: ["Soggetto leggibile", "Arti separati", "Impatto chiaro", "Sfondo non fonde il corpo"],
+    params: {
+      prompt:
+        "cinematic action scene with one adult hero subject, clear impact moment, fast shutter action clarity, separated arms and legs, readable hands if visible, stable feet and stance, controlled debris, motivated practical lighting, strong setpiece depth, grounded photoreal blockbuster realism",
+      negativePrompt: humanNegative,
+      steps: 38,
+      cfg: 4.9,
+      samplerName: "dpmpp_2m_sde",
+      scheduler: "karras",
+      width: 1344,
+      height: 768
+    },
+    modelConfig: {
+      humanStructureMode: "action",
+      humanControlMode: "openpose",
+      humanPosePresetId: "running-action",
+      controlStrength: 0.72,
+      enableDetailPass: false,
+      autoRepairThreshold: 76
+    },
+    candidates: [
+      {
+        id: "readable-impact",
+        label: "Readable Impact",
+        focus: "Momento d'azione chiaro senza blur fangoso.",
+        successCriteria: ["Impatto evidente", "Debris controllato", "Soggetto centrale", "No motion smear"],
+        promptSuffix:
+          "clear impact timing, fast shutter clarity, crisp action silhouette, controlled debris arcs, subject remains visually dominant",
+        negativeSuffix: "muddy motion blur, chaotic debris cloud, unclear impact, subject lost in background",
+        params: { cfg: 4.75 }
       },
       {
-        id: "garment-readability",
-        label: "Garment Readability",
-        focus: "Tessuti, outfit e separazione dei materiali.",
-        successCriteria: ["Cuciture leggibili", "Pieghe naturali", "Materiali separati", "Bordi outfit netti"],
+        id: "action-anatomy",
+        label: "Action Anatomy",
+        focus: "Arti, mani, piedi e posa durante il movimento.",
+        successCriteria: ["Braccia separate", "Gambe leggibili", "Mani non fuse", "Appoggio credibile"],
         promptSuffix:
-          "readable garment structure, clean fabric folds, premium textile texture, clear outfit hierarchy, crisp tailoring edges",
-        negativeSuffix: "broken fabric folds, melted clothing, messy styling, clutter",
-        params: { steps: 37, cfg: 5.2 }
+          "anatomically plausible action pose, separated arms and legs, clean limb silhouette, stable feet and stance, readable hands if visible",
+        negativeSuffix: "confused limbs, merged limbs, extra arms, extra legs, broken hands, warped feet",
+        params: { cfg: 4.65 },
+        modelConfig: { controlStrength: 0.76 }
+      },
+      {
+        id: "subject-separation",
+        label: "Subject Separation",
+        focus: "Gerarchia frame e separazione dallo sfondo.",
+        successCriteria: ["Soggetto piu nitido dello sfondo", "Setpiece leggibile", "Atmosfera controllata", "Focal point chiaro"],
+        promptSuffix:
+          "clear foreground midground background separation, subject brighter and sharper than setpiece, readable environment interaction, controlled atmosphere",
+        negativeSuffix: "background overpowering subject, muddy haze, unclear focal point, flat grading",
+        params: { cfg: 4.95, steps: 37 }
       }
     ]
   },
@@ -277,6 +355,64 @@ export const qualitySuites: readonly BenchmarkSuite[] = [
         negativeSuffix: "chaotic effects, cluttered silhouette, fused fingers, character sticker look",
         params: { width: 1024, height: 1024 },
         modelConfig: { renderCategoryId: "anime-action-character" }
+      }
+    ]
+  },
+  {
+    id: "anime-action-character-readable",
+    label: "Anime Action Character",
+    family: "anime",
+    categoryId: "anime-action-character",
+    styleRecipeId: "anime-action-readable",
+    priority: "critical",
+    description: "Action anime per linework, costume e personaggio leggibile senza caos neon.",
+    checkpointProfileId: "anime",
+    requiredModelIds: ["anime-checkpoint"],
+    providerModel: "Animagine local",
+    providerReason: "Lane anime dinamica da separare dal portrait: serve misurare silhouette, outfit ed effetti.",
+    successCriteria: ["Linework pulito", "Personaggio leggibile", "Costume dettagliato", "Effetti sotto controllo"],
+    params: {
+      prompt:
+        "anime action character key visual, single readable protagonist leaping forward, dynamic but clear full-body pose, expressive face, symmetrical eyes, readable hands, distinct outfit design with separated costume layers, clean action linework, crisp cel shading, controlled aura effects, background supports the character without overpowering",
+      negativePrompt:
+        "worst quality, low quality, blurry, featureless black silhouette, default black bodysuit, dark cyber armor, neon aura overload, glowing contour overload, chaotic effects, background overpowering character, messy linework, uneven eyes, fused fingers, text, watermark",
+      steps: 32,
+      cfg: 3.9,
+      samplerName: "er_sde",
+      scheduler: "simple",
+      width: 1024,
+      height: 1024
+    },
+    modelConfig: { enableDetailPass: false, autoRepairThreshold: 74 },
+    candidates: [
+      {
+        id: "clean-action-linework",
+        label: "Clean Action Linework",
+        focus: "Pulizia linee, occhi, mani e contorno personaggio.",
+        successCriteria: ["Linee nette", "Occhi simmetrici", "Mani leggibili", "No motion smear"],
+        promptSuffix:
+          "sharp character outline, clean action linework, symmetrical eyes, readable hands and fingers, crisp cel shading",
+        negativeSuffix: "messy linework, uneven eyes, fused fingers, muddy character edges, motion smear",
+        params: { cfg: 3.85 }
+      },
+      {
+        id: "character-first",
+        label: "Character First",
+        focus: "Il personaggio resta piu importante di aura e sfondo.",
+        successCriteria: ["Soggetto dominante", "Sfondo subordinato", "Aura controllata", "Silhouette chiara"],
+        promptSuffix:
+          "character brighter and sharper than background, clear face and hair silhouette, controlled aura effects, background supports the pose",
+        negativeSuffix: "background overpowering character, featureless black silhouette, neon aura overload, chaotic effects"
+      },
+      {
+        id: "costume-readability",
+        label: "Costume Readability",
+        focus: "Outfit, accessori e separazione dei dettagli.",
+        successCriteria: ["Outfit distinto", "Layer separati", "Accessori leggibili", "Niente massa nera"],
+        promptSuffix:
+          "distinct outfit design, separated costume layers, readable armor or cloth panels, clean accessory shapes, polished production character art",
+        negativeSuffix: "default black bodysuit, dark cyber armor mass, unreadable costume, cluttered silhouette",
+        params: { steps: 33, cfg: 4.0 }
       }
     ]
   }
